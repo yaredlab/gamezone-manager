@@ -37,6 +37,9 @@ function buildConsole(id, type) {
     elapsed: 0,       // seconds accumulated during pauses
     startedAt: null,  // timestamp when last resumed (ms)
     matches: [],      // Array<MatchObj> — only relevant in FIFA mode
+    // ── Automatic 4-minute match cycle ──
+    matchTimerElapsed:   0,    // seconds accumulated in current 4-min cycle
+    matchTimerStartedAt: null, // timestamp (ms) when cycle timer last started
   };
 }
 
@@ -55,6 +58,8 @@ function buildDefaultState() {
 /**
  * Load application state from localStorage.
  * Falls back to default state when no data or corrupted data exists.
+ * Runs a migration pass to add any new console fields introduced in later
+ * versions (e.g. matchTimerElapsed / matchTimerStartedAt for V1.1+).
  * @returns {AppState}
  */
 export function loadState() {
@@ -63,6 +68,16 @@ export function loadState() {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (parsed && Array.isArray(parsed.consoles)) {
+        // ── Migration: ensure every console has the auto-match timer fields ──
+        parsed.consoles.forEach(con => {
+          if (con.matchTimerElapsed   === undefined) con.matchTimerElapsed   = 0;
+          if (con.matchTimerStartedAt === undefined) con.matchTimerStartedAt = null;
+          // If the console is currently "playing" but matchTimerStartedAt is missing,
+          // start the cycle timer from now (best-effort recovery after a page reload).
+          if (con.status === 'playing' && !con.matchTimerStartedAt) {
+            con.matchTimerStartedAt = Date.now();
+          }
+        });
         return parsed;
       }
     }

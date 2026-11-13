@@ -7,6 +7,7 @@ import { saveState, removeConsoleFromState } from '../shared/storage.js';
 import { startSession, pauseSession, resumeSession, endSession, toggleMode, addMatch } from './sessions.js';
 import {
   getPrice, getElapsed, formatTimer, getCharge, getPaid, formatMoney, esc,
+  getMatchTimerElapsed, MATCH_INTERVAL_SECONDS,
 } from '../shared/helpers.js';
 
 export { getPrice, getElapsed, formatTimer, getCharge, getPaid, formatMoney, esc };
@@ -22,6 +23,28 @@ export function buildConsoleCard(con, selected) {
   const statusClass = con.status === 'playing' ? 'playing' : con.status === 'paused' ? 'paused' : '';
   const badgeClass  = con.status === 'playing' ? 'live'    : con.status === 'paused' ? 'pause'  : '';
   const badgeLabel  = con.status === 'free'    ? 'AVAILABLE' : con.status.toUpperCase();
+
+  // ── Match cycle countdown (4-minute timer) ────────────────────────────────
+  const cycleElapsed  = getMatchTimerElapsed(con);
+  const cycleSeconds  = Math.min(cycleElapsed, MATCH_INTERVAL_SECONDS);
+  const cyclePct      = Math.round((cycleSeconds / MATCH_INTERVAL_SECONDS) * 100);
+  const cycleRemaining = MATCH_INTERVAL_SECONDS - cycleSeconds;
+  const cycleMin      = Math.floor(cycleRemaining / 60);
+  const cycleSec      = cycleRemaining % 60;
+  const cycleLabel    = con.status !== 'free' && con.mode === 'FIFA'
+    ? `Next match in ${String(cycleMin).padStart(2,'0')}:${String(cycleSec).padStart(2,'0')}`
+    : '';
+
+  const matchProgressBar = con.status !== 'free' && con.mode === 'FIFA' ? `
+    <div class="match-cycle" data-cycle="${esc(con.id)}">
+      <div class="match-cycle-label">
+        <span class="muted">AUTO MATCH TIMER</span>
+        <span class="cycle-countdown">${cycleLabel}</span>
+      </div>
+      <div class="match-cycle-track">
+        <div class="match-cycle-fill" style="width:${cyclePct}%"></div>
+      </div>
+    </div>` : '';
 
   const metricsRow = `
     <div class="metrics">
@@ -53,6 +76,7 @@ export function buildConsoleCard(con, selected) {
 
   const bubbleAreaFIFA = `
     <div class="bubblearea">
+      ${matchProgressBar}
       <div class="bubblehead">
         <span class="muted">MATCH PAYMENT BUBBLES</span>
         <span><b class="green">${paidCount} paid</b> / ${con.matches.length}</span>

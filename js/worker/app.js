@@ -10,6 +10,8 @@ import {
   getElapsed,
   formatTimer,
 } from './consoles.js';
+import { autoAddMatch } from './sessions.js';
+import { getMatchTimerElapsed, MATCH_INTERVAL_SECONDS } from '../shared/helpers.js';
 import { updateSelectionUI, initPaymentListeners } from './payments.js';
 import { initCalculator } from './calculator.js';
 import {
@@ -20,7 +22,7 @@ import {
   initDashboardListeners,
 } from './dashboard.js';
 
-// ── Application state ─────────────────────────────────────────────────────────
+// ── Application state ──────────────────────────────────────────────────────────
 
 const state    = loadState();
 const selected = new Set();
@@ -39,7 +41,52 @@ function renderAll() {
   updateSelectionUI(state, selected);
 }
 
-// ── Bootstrap ─────────────────────────────────────────────────────────────────
+// ── Auto match ticker ─────────────────────────────────────────────────────────
+// Runs every second.  For each active FIFA console it:
+//  1. Checks whether the 4-minute cycle is complete → fires autoAddMatch.
+//  2. Updates the session timer display in-place (no full re-render).
+//  3. Updates the match cycle progress bar in-place.
+
+function ticker() {
+  let matchCreated = false;
+
+  state.consoles.forEach(con => {
+    // ── Session timer (in-place update) ──
+    const timerEl = document.querySelector(`[data-timer="${CSS.escape(con.id)}"]`);
+    if (timerEl) timerEl.textContent = formatTimer(getElapsed(con));
+
+    // ── Match cycle (auto-generate every 4 minutes) ──
+    if (con.status === 'playing' && con.mode === 'FIFA') {
+      const cycleEl = document.querySelector(`[data-cycle="${CSS.escape(con.id)}"]`);
+
+      if (getMatchTimerElapsed(con) >= MATCH_INTERVAL_SECONDS) {
+        // Fire – create one unpaid bubble and reset the cycle
+        autoAddMatch(state, con);
+        matchCreated = true;
+        // Full re-render is triggered below after the loop
+      } else if (cycleEl) {
+        // Update progress bar without touching the whole DOM
+        const cycleSecs   = getMatchTimerElapsed(con);
+        const pct         = Math.round((cycleSecs / MATCH_INTERVAL_SECONDS) * 100);
+        const remaining   = MATCH_INTERVAL_SECONDS - cycleSecs;
+        const cm          = Math.floor(remaining / 60);
+        const cs          = remaining % 60;
+        const fill        = cycleEl.querySelector('.match-cycle-fill');
+        const countdown   = cycleEl.querySelector('.cycle-countdown');
+        if (fill)      fill.style.width = pct + '%';
+        if (countdown) countdown.textContent =
+          `Next match in ${String(cm).padStart(2,'0')}:${String(cs).padStart(2,'0')}`;
+      }
+    }
+  });
+
+  // A new match bubble was created – do a full re-render so it appears instantly
+  if (matchCreated) renderAll();
+
+  tickStats(state);
+}
+
+// ── Bootstrap ──────────────────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -90,14 +137,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.key === 'Enter') document.getElementById('saveConsole').click();
   });
 
-  /* ── Per-second timer interval ── */
-  setInterval(() => {
-    document.querySelectorAll('[data-timer]').forEach(el => {
-      const con = state.consoles.find(x => x.id === el.dataset.timer);
-      if (con) el.textContent = formatTimer(getElapsed(con));
-    });
-    tickStats(state);
-  }, 1000);
+  /* ── 1-second ticker ── */
+  setInterval(ticker, 1000);
 
   renderAll();
 });

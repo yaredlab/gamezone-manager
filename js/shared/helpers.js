@@ -33,6 +33,25 @@ export function getElapsed(con) {
 }
 
 /**
+ * Seconds elapsed within the CURRENT 4-minute match cycle.
+ * Uses a separate timestamp (matchTimerStartedAt) so it is completely
+ * independent from the main session timer and survives pause/resume.
+ * @param {ConsoleObj} con
+ * @returns {number}
+ */
+export function getMatchTimerElapsed(con) {
+  return (
+    (con.matchTimerElapsed || 0) +
+    (con.status === 'playing' && con.matchTimerStartedAt
+      ? Math.floor((Date.now() - con.matchTimerStartedAt) / 1000)
+      : 0)
+  );
+}
+
+/** Duration of one automatic match cycle in seconds (4 minutes). */
+export const MATCH_INTERVAL_SECONDS = 240;
+
+/**
  * Format seconds as HH:MM:SS.
  * @param {number} totalSeconds
  * @returns {string}
