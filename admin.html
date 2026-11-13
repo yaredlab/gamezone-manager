@@ -1,0 +1,521 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GameZone Manager — Admin Dashboard</title>
+
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/admin.css">
+  <link rel="stylesheet" href="css/responsive.css">
+</head>
+<body>
+
+<main class="wrap">
+
+  <!-- ── Header ──────────────────────────────────────────── -->
+  <header class="top">
+    <div>
+      <div class="brand">GAMEZONE <span>MANAGER</span></div>
+      <div class="muted" style="font-size:11px">ADMINISTRATION · OWNER ACCESS</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:14px">
+      <span class="pill pill-active">ADMIN</span>
+      <span class="muted" id="adminDate" style="font-size:12px"></span>
+      <a href="index.html" style="font-size:12px;color:var(--muted);text-decoration:none">
+        ← Worker Panel
+      </a>
+    </div>
+  </header>
+
+  <!-- ── Admin layout: sidebar + content ──────────────────── -->
+  <div class="admin-layout">
+
+    <!-- ── Sidebar navigation ───────────────────────────── -->
+    <aside class="admin-sidebar">
+      <nav class="admin-nav">
+        <span class="nav-group-label">Management</span>
+        <button class="active" data-page="overview">▦ &nbsp; Overview</button>
+        <button data-page="transactions">⇄ &nbsp; Transactions</button>
+        <button data-page="consoles">▣ &nbsp; Consoles</button>
+        <button data-page="workers">♙ &nbsp; Workers</button>
+
+        <span class="nav-group-label">Configuration</span>
+        <button data-page="pricing">◈ &nbsp; Pricing</button>
+        <button data-page="reports">▤ &nbsp; Reports</button>
+        <button data-page="settings">⚙ &nbsp; Settings</button>
+      </nav>
+      <p class="sidebar-note">
+        Admin access only. Worker accounts should not be able to open these settings.
+      </p>
+    </aside>
+
+    <!-- ── Page content ─────────────────────────────────── -->
+    <section class="admin-content">
+
+      <!-- ════════════════════════════════════════════════
+           PAGE: Overview
+           ════════════════════════════════════════════════ -->
+      <div class="page show" id="page-overview">
+        <div class="admin-heading">
+          <div>
+            <h1>Dashboard overview</h1>
+            <p>Business performance and current activity.</p>
+          </div>
+          <div class="admin-heading-actions">
+            <button class="primary" id="refresh">↻ Refresh data</button>
+          </div>
+        </div>
+
+        <!-- Stat cards -->
+        <div class="admin-stats">
+          <div class="admin-stat">
+            <label>COLLECTED TODAY</label>
+            <strong id="todayTotal">0 ETB</strong>
+          </div>
+          <div class="admin-stat">
+            <label>COLLECTED THIS MONTH</label>
+            <strong id="monthTotal">0 ETB</strong>
+          </div>
+          <div class="admin-stat">
+            <label>MATCHES TODAY</label>
+            <strong id="todayMatches">0</strong>
+          </div>
+          <div class="admin-stat">
+            <label>UNPAID BALANCE</label>
+            <strong id="unpaid">0 ETB</strong>
+          </div>
+        </div>
+
+        <!-- Two-column panels -->
+        <div class="admin-grid2">
+
+          <!-- Payment method bars -->
+          <div class="admin-panel">
+            <h2>Payment methods · Today</h2>
+            <div class="barrow">
+              <span>Cash</span>
+              <div class="bar"><i id="cashBar" style="width:0%"></i></div>
+              <b id="cashTotal">0 ETB</b>
+            </div>
+            <div class="barrow">
+              <span>Telebirr</span>
+              <div class="bar"><i id="teleBar" style="width:0%"></i></div>
+              <b id="teleTotal">0 ETB</b>
+            </div>
+            <div class="barrow">
+              <span>CBE</span>
+              <div class="bar"><i id="cbeBar" style="width:0%"></i></div>
+              <b id="cbeTotal">0 ETB</b>
+            </div>
+            <p class="session-note">Amounts calculated from recorded transactions.</p>
+          </div>
+
+          <!-- Console activity -->
+          <div class="admin-panel">
+            <h2>Console activity</h2>
+            <div class="admin-stats" style="grid-template-columns:repeat(2,1fr);margin-bottom:0">
+              <div class="admin-stat">
+                <label>Active sessions</label>
+                <strong id="activeSessions">0</strong>
+              </div>
+              <div class="admin-stat">
+                <label>Total consoles</label>
+                <strong id="consoleCount">0</strong>
+              </div>
+            </div>
+            <p class="session-note" style="margin-top:14px">
+              Live session details will sync automatically when the backend is connected.
+              This page refreshes every 30 seconds to pick up worker changes.
+            </p>
+          </div>
+        </div>
+
+        <!-- Recent transactions -->
+        <div class="admin-panel">
+          <h2>Recent transactions</h2>
+          <div class="tablewrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Console</th>
+                  <th>Payment type</th>
+                  <th>Description</th>
+                  <th>Amount</th>
+                </tr>
+              </thead>
+              <tbody id="recentRows"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ════════════════════════════════════════════════
+           PAGE: Transactions
+           ════════════════════════════════════════════════ -->
+      <div class="page" id="page-transactions">
+        <div class="admin-heading">
+          <div>
+            <h1>Transactions &amp; receipts</h1>
+            <p>Complete payment history recorded by workers.</p>
+          </div>
+          <div class="admin-heading-actions">
+            <button class="primary" id="export">↓ Export CSV</button>
+          </div>
+        </div>
+
+        <div class="admin-panel">
+          <!-- Filters -->
+          <div class="admin-filter-row">
+            <div class="field">
+              <label>PAYMENT METHOD</label>
+              <select id="filterMethod">
+                <option value="all">All methods</option>
+                <option value="Cash">Cash</option>
+                <option value="Telebirr">Telebirr</option>
+                <option value="Commercial Bank of Ethiopia">Commercial Bank of Ethiopia</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>SEARCH CONSOLE / DESCRIPTION</label>
+              <input id="searchTx" placeholder="Type to filter…">
+            </div>
+          </div>
+
+          <!-- Result count -->
+          <div class="tx-result-label" id="txResultCount">0 transactions</div>
+
+          <!-- Table -->
+          <div class="tablewrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Ref #</th>
+                  <th>Date / Time</th>
+                  <th>Console</th>
+                  <th>Payment method</th>
+                  <th>Description</th>
+                  <th>Amount</th>
+                </tr>
+              </thead>
+              <tbody id="allRows"></tbody>
+            </table>
+          </div>
+
+          <p class="session-note" style="margin-top:14px">
+            Receipt image uploads and transaction reference numbers will be fully implemented
+            with the backend integration in V2.
+          </p>
+        </div>
+      </div>
+
+      <!-- ════════════════════════════════════════════════
+           PAGE: Consoles
+           ════════════════════════════════════════════════ -->
+      <div class="page" id="page-consoles">
+        <div class="admin-heading">
+          <div>
+            <h1>Console management</h1>
+            <p>Manage PS4 and PS5 devices. Changes apply immediately in the Worker Dashboard.</p>
+          </div>
+          <div class="admin-heading-actions">
+            <span class="muted" style="font-size:12px">
+              <b id="activeConsolesCount">0</b> active &nbsp;·&nbsp;
+              <b id="consoleCount">0</b> total
+            </span>
+            <button class="primary" id="adminAddConsole">＋ Add console</button>
+          </div>
+        </div>
+
+        <div class="admin-panel">
+          <div class="tablewrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Console</th>
+                  <th>Type</th>
+                  <th>Price / match</th>
+                  <th>Mode</th>
+                  <th>Status</th>
+                  <th>Session info</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="consoleRows"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ════════════════════════════════════════════════
+           PAGE: Workers
+           ════════════════════════════════════════════════ -->
+      <div class="page" id="page-workers">
+        <div class="admin-heading">
+          <div>
+            <h1>Worker accounts</h1>
+            <p>Manage staff access to the Worker Control Panel.</p>
+          </div>
+          <div class="admin-heading-actions">
+            <span class="muted" style="font-size:12px"><b id="workerCount">0</b> workers</span>
+            <button class="primary" id="adminAddWorker">＋ Add worker</button>
+          </div>
+        </div>
+
+        <div class="admin-panel">
+          <div id="workerList"></div>
+          <p class="session-note" style="margin-top:16px">
+            Account creation, PIN authentication, and permission enforcement will be
+            implemented in the backend phase (V2). Worker accounts listed here are
+            stored locally for now.
+          </p>
+        </div>
+      </div>
+
+      <!-- ════════════════════════════════════════════════
+           PAGE: Pricing
+           ════════════════════════════════════════════════ -->
+      <div class="page" id="page-pricing">
+        <div class="admin-heading">
+          <div>
+            <h1>Pricing settings</h1>
+            <p>Change the prices used by the Worker Dashboard.</p>
+          </div>
+        </div>
+
+        <div class="admin-panel">
+          <h2>Game prices (ETB)</h2>
+          <div class="form-grid">
+            <div class="field">
+              <label>PS4 · Price per match (ETB)</label>
+              <input id="ps4Price" type="number" min="0" step="0.5" placeholder="25">
+            </div>
+            <div class="field">
+              <label>PS5 · Price per match (ETB)</label>
+              <input id="ps5Price" type="number" min="0" step="0.5" placeholder="30">
+            </div>
+            <div class="field">
+              <label>Mission · 30 minutes (ETB)</label>
+              <input id="mission30" type="number" min="0" step="1" placeholder="50">
+            </div>
+            <div class="field">
+              <label>Mission · 60 minutes (ETB)</label>
+              <input id="mission60" type="number" min="0" step="1" placeholder="100">
+            </div>
+          </div>
+          <button class="primary" id="savePrices" style="margin-top:16px">
+            ✓ Save pricing
+          </button>
+          <p class="session-note" style="margin-top:14px">
+            Prices are saved in this browser only. In production, price changes will be
+            stored in the database with an audit log. Changes apply to new sessions only —
+            existing sessions are not affected.
+          </p>
+        </div>
+      </div>
+
+      <!-- ════════════════════════════════════════════════
+           PAGE: Reports
+           ════════════════════════════════════════════════ -->
+      <div class="page" id="page-reports">
+        <div class="admin-heading">
+          <div>
+            <h1>Reports</h1>
+            <p>Business performance summaries by time range.</p>
+          </div>
+          <div class="admin-heading-actions">
+            <button class="primary" id="reportExport">↓ Export CSV</button>
+          </div>
+        </div>
+
+        <!-- Range selector -->
+        <div class="range-tabs">
+          <button id="range-daily" class="primary">Daily</button>
+          <button id="range-weekly">Weekly</button>
+          <button id="range-monthly">Monthly</button>
+        </div>
+
+        <!-- Summary cards -->
+        <div class="admin-stats" style="grid-template-columns:repeat(2,minmax(0,1fr));margin-bottom:14px">
+          <div class="admin-stat">
+            <label>TOTAL TRANSACTIONS</label>
+            <strong id="reportCount">0</strong>
+          </div>
+          <div class="admin-stat">
+            <label>TOTAL COLLECTED</label>
+            <strong id="reportTotal">0 ETB</strong>
+          </div>
+        </div>
+
+        <div class="admin-grid2">
+
+          <!-- Payment breakdown bars -->
+          <div class="admin-panel">
+            <h2>Payment method breakdown</h2>
+            <div class="barrow">
+              <span>Cash</span>
+              <div class="bar"><i id="rptCashBar" style="width:0%"></i></div>
+              <b id="rptCashTotal">0 ETB</b>
+            </div>
+            <div class="barrow">
+              <span>Telebirr</span>
+              <div class="bar"><i id="rptTeleBar" style="width:0%"></i></div>
+              <b id="rptTeleTotal">0 ETB</b>
+            </div>
+            <div class="barrow">
+              <span>CBE</span>
+              <div class="bar"><i id="rptCbeBar" style="width:0%"></i></div>
+              <b id="rptCbeTotal">0 ETB</b>
+            </div>
+          </div>
+
+          <!-- Console performance table -->
+          <div class="admin-panel">
+            <h2>Console performance</h2>
+            <div class="tablewrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Console</th>
+                    <th>Transactions</th>
+                    <th>Revenue</th>
+                  </tr>
+                </thead>
+                <tbody id="consoleReport"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="admin-panel">
+          <p class="session-note">
+            Date-range filtering, match counts per console, worker performance breakdown,
+            and PDF receipt exports will be added after the database is connected in V2.
+          </p>
+        </div>
+      </div>
+
+      <!-- ════════════════════════════════════════════════
+           PAGE: Settings
+           ════════════════════════════════════════════════ -->
+      <div class="page" id="page-settings">
+        <div class="admin-heading">
+          <div>
+            <h1>Settings</h1>
+            <p>Business information and system preferences.</p>
+          </div>
+        </div>
+
+        <div class="admin-panel">
+          <h2>Business information</h2>
+          <div class="settings-grid">
+            <div class="field">
+              <label>BUSINESS NAME</label>
+              <input id="settingBusinessName" placeholder="GameZone">
+            </div>
+            <div class="field">
+              <label>LOCATION / BRANCH</label>
+              <input id="settingLocation" placeholder="Addis Ababa, Ethiopia">
+            </div>
+            <div class="field">
+              <label>PHONE NUMBER</label>
+              <input id="settingPhone" placeholder="+251 9XX XXX XXX">
+            </div>
+            <div class="field">
+              <label>CURRENCY</label>
+              <select id="settingCurrency">
+                <option value="ETB">ETB — Ethiopian Birr</option>
+                <option value="USD">USD — US Dollar</option>
+              </select>
+            </div>
+          </div>
+
+          <h2 style="margin-top:16px">System preferences</h2>
+          <div class="settings-grid">
+            <div class="field">
+              <label>TIMEZONE</label>
+              <select id="settingTimezone">
+                <option value="Africa/Addis_Ababa">Africa/Addis Ababa (EAT UTC+3)</option>
+                <option value="UTC">UTC</option>
+              </select>
+            </div>
+          </div>
+
+          <button class="primary" id="saveSettings" style="margin-top:16px">✓ Save settings</button>
+          <p class="session-note" style="margin-top:14px">
+            Settings are saved in this browser only. In production, settings will be stored
+            in the shared database and apply to all worker devices.
+          </p>
+        </div>
+      </div>
+
+    </section>
+  </div>
+
+  <div class="admin-footer">
+    GameZone Manager · Admin Dashboard V1 &nbsp;·&nbsp;
+    Data is read from the Worker Dashboard localStorage in this browser.
+    Not yet connected to a shared database.
+  </div>
+
+</main>
+
+<!-- ════════════════════════════════════════════════════════
+     Modals
+     ════════════════════════════════════════════════════════ -->
+
+<!-- Add / Rename Console modal -->
+<div class="admin-modal" id="consoleModal">
+  <div class="admin-modalbox">
+    <h3 id="consoleModalTitle">Add console</h3>
+    <div class="field" style="margin-bottom:12px">
+      <label>CONSOLE TYPE</label>
+      <select id="consoleType">
+        <option value="PS4">PS4</option>
+        <option value="PS5">PS5</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>CONSOLE NAME</label>
+      <input id="consoleName" placeholder="e.g. PS5-04" maxlength="20">
+    </div>
+    <div class="admin-modal-footer">
+      <button id="cancelConsoleModal">Cancel</button>
+      <button class="primary" id="saveConsoleModal">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add / Edit Worker modal -->
+<div class="admin-modal" id="workerModal">
+  <div class="admin-modalbox">
+    <h3 id="workerModalTitle">Add worker</h3>
+    <div class="field" style="margin-bottom:12px">
+      <label>FULL NAME</label>
+      <input id="workerNameInput" placeholder="Worker name" maxlength="60">
+    </div>
+    <div class="field">
+      <label>ROLE</label>
+      <select id="workerRoleInput">
+        <option value="worker">Worker</option>
+        <option value="supervisor">Supervisor</option>
+        <option value="manager">Manager</option>
+      </select>
+    </div>
+    <div class="admin-modal-footer">
+      <button id="cancelWorkerModal">Cancel</button>
+      <button class="primary" id="saveWorkerModal">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast notification -->
+<div class="admin-toast" id="adminToast"></div>
+
+<!-- ── JavaScript — ES modules ───────────────────────────── -->
+<script type="module" src="js/admin/app.js"></script>
+
+</body>
+</html>

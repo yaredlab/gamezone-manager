@@ -1,0 +1,84 @@
+/* ==========================================================
+   responsive.css — Breakpoints for BOTH dashboards
+   ========================================================== */
+
+/* ── Tablet — max 1000px ────────────────────────────────── */
+@media (max-width: 1000px) {
+
+  /* Worker Dashboard */
+  .layout {
+    grid-template-columns: 1fr;
+  }
+  .sidepanel {
+    position: static;
+  }
+  .consolegrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  /* Admin Dashboard */
+  .admin-layout {
+    grid-template-columns: 1fr;
+  }
+  .admin-sidebar {
+    position: static;
+  }
+  .admin-nav {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .admin-nav .nav-group-label {
+    grid-column: 1 / -1;
+  }
+  .admin-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .admin-grid2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Mobile — max 620px ─────────────────────────────────── */
+@media (max-width: 620px) {
+
+  /* Shared */
+  .wrap { padding: 13px; }
+
+  /* Worker */
+  .stats       { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .consolegrid { grid-template-columns: 1fr; }
+  .top         { align-items: flex-start; }
+  .statvalue   { font-size: 20px; }
+  .calckeys button { padding: 8px 4px; font-size: 13px; }
+
+  /* Admin */
+  .admin-stats   { grid-template-columns: repeat(2, 1fr); }
+  .admin-nav     { grid-template-columns: repeat(2, 1fr); }
+  .admin-heading { flex-direction: column; align-items: flex-start; }
+  .form-grid,
+  .settings-grid { grid-template-columns: 1fr; }
+  .worker-row    { flex-direction: column; align-items: flex-start; }
+  .admin-filter-row { flex-direction: column; }
+  .range-tabs    { flex-wrap: wrap; }
+  .admin-stat strong { font-size: 18px; }
+}
+
+/* ── Large desktop — min 1400px ─────────────────────────── */
+@media (min-width: 1400px) {
+
+  /* Worker */
+  .layout {
+    grid-template-columns: minmax(0, 1fr) 380px;
+  }
+  .consolegrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  /* Admin */
+  .admin-layout {
+    grid-template-columns: 240px minmax(0, 1fr);
+  }
+  .admin-stats {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}

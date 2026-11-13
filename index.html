@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GameZone Manager — Worker Dashboard</title>
+
+  <!-- ── CSS imports (order matters) ─────────────────────── -->
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/worker.css">
+  <link rel="stylesheet" href="css/responsive.css">
+</head>
+<body>
+
+<main class="wrap">
+
+  <!-- ── Header ──────────────────────────────────────────── -->
+  <header class="top">
+    <div>
+      <div class="brand">GAMEZONE <span>MANAGER</span></div>
+      <div class="muted" style="font-size:11px">WORKER CONTROL PANEL · V1</div>
+    </div>
+    <div style="text-align:right">
+      <div id="today"></div>
+      <button class="eyebtn" id="toggleStats" style="margin-top:7px">
+        ◉ <span>Hide totals</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ── Stats bar ────────────────────────────────────────── -->
+  <section class="stats" id="stats">
+    <div class="stat">
+      <div class="statlabel">DAILY COLLECTED</div>
+      <div class="statvalue" id="collected">0 ETB</div>
+    </div>
+    <div class="stat">
+      <div class="statlabel">DAILY MATCHES</div>
+      <div class="statvalue" id="matchCount">0</div>
+    </div>
+    <div class="stat">
+      <div class="statlabel">ACTIVE SESSIONS</div>
+      <div class="statvalue" id="activeCount">0</div>
+    </div>
+    <div class="stat">
+      <div class="statlabel">UNPAID BALANCE</div>
+      <div class="statvalue" id="unpaid">0 ETB</div>
+    </div>
+  </section>
+
+  <!-- ── Two-column layout ────────────────────────────────── -->
+  <div class="layout">
+
+    <!-- Left column: consoles + calculator -->
+    <section>
+
+      <!-- Console grid header -->
+      <div class="sectionhead">
+        <div>
+          <h2>Console control</h2>
+          <div class="muted" style="font-size:11px">
+            Select unpaid match bubbles, then record their payment.
+          </div>
+        </div>
+        <button class="primary" id="addConsole">＋ Add console</button>
+      </div>
+
+      <!-- Console cards rendered by js/worker/consoles.js -->
+      <div class="consolegrid" id="consoleGrid"></div>
+
+      <!-- Quick calculator -->
+      <section class="calculator">
+        <div class="sectionhead">
+          <h2>Quick calculator</h2>
+          <span class="badge">ETB</span>
+        </div>
+        <div class="calcdisplay" id="calcDisplay">0</div>
+        <div class="calckeys" id="calcKeys"></div>
+        <div class="muted" style="font-size:10px;margin-top:8px">
+          Calculator is separate from payment records.
+        </div>
+      </section>
+
+    </section>
+
+    <!-- Right column: payment side panel -->
+    <aside class="sidepanel">
+      <h2>＋ MOBILE / CASH PAYMENT</h2>
+      <p class="sub">Record money received from customers.</p>
+
+      <!-- Payment type -->
+      <div class="field">
+        <label>PAYMENT TYPE</label>
+        <select id="method">
+          <option value="Cash">Normal Payment · Cash</option>
+          <option value="Mobile Banking">Mobile Banking</option>
+        </select>
+      </div>
+
+      <!-- Mobile banking provider (hidden by default) -->
+      <div class="field" id="bankField" style="display:none">
+        <label>MOBILE BANKING PROVIDER</label>
+        <select id="bankProvider">
+          <option>Telebirr</option>
+          <option>Commercial Bank of Ethiopia</option>
+        </select>
+      </div>
+
+      <!-- Amount -->
+      <div class="field">
+        <label>AMOUNT (ETB)</label>
+        <div class="amountwrap">
+          <input id="amount" type="number" min="0.01" step="0.01" placeholder="0.00">
+          <span>ETB</span>
+        </div>
+      </div>
+
+      <!-- Description -->
+      <div class="field">
+        <label>DESCRIPTION (OPTIONAL)</label>
+        <input id="description" maxlength="120" placeholder="Customer payment / match numbers">
+      </div>
+
+      <!-- Selection summary box -->
+      <div class="selectedbox">
+        <div>
+          <div class="muted" style="font-size:10px">SELECTED MATCHES</div>
+          <strong id="selectedCount">0</strong>
+          <div id="selectedPreview" class="muted" style="font-size:10px;margin-top:5px">
+            No bubbles selected
+          </div>
+        </div>
+        <div style="text-align:right">
+          <div class="muted" style="font-size:10px">AMOUNT TO MARK PAID</div>
+          <strong id="selectedTotal">0 ETB</strong>
+        </div>
+      </div>
+
+      <!-- Action buttons -->
+      <button
+        class="record"
+        id="recordPayment"
+        disabled
+        style="background:#123b31;border-color:#237b59;color:#8df0bd"
+      >✓ &nbsp; MARK SELECTED AS PAID</button>
+
+      <button id="clearSelection" style="width:100%;margin-top:7px;background:transparent">
+        Clear selected bubbles
+      </button>
+
+      <!-- Transaction history -->
+      <div class="transactions">
+        <div class="transactionshead">
+          <h3>TODAY'S TRANSACTIONS</h3>
+          <span class="badge" id="txCount">0 records</span>
+        </div>
+        <div class="txlist" id="txList">
+          <div class="empty">No transfers recorded yet.</div>
+        </div>
+        <button id="viewAll" style="width:100%;margin-top:9px">
+          ☷ VIEW ALL TRANSACTIONS
+        </button>
+      </div>
+
+    </aside>
+  </div>
+
+  <div class="footer">
+    Prototype · Data is saved in this browser on this device.
+    Not yet connected to a shared database or worker login.
+    <a href="admin.html" style="color:var(--cyan);margin-left:10px">→ Admin Dashboard</a>
+  </div>
+
+</main>
+
+<!-- ── Add Console modal ─────────────────────────────────── -->
+<div class="modal" id="modal">
+  <div class="modalbox">
+    <h3 id="modalTitle">Add console</h3>
+    <div class="field">
+      <label>CONSOLE TYPE</label>
+      <select id="newType">
+        <option>PS4</option>
+        <option>PS5</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>CONSOLE NAME</label>
+      <input id="newName" placeholder="Example: PS4-05">
+    </div>
+    <div class="modalactions">
+      <button id="cancelModal">Cancel</button>
+      <button class="primary" id="saveConsole">Add console</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── JavaScript — ES modules (updated path) ───────────── -->
+<script type="module" src="js/worker/app.js"></script>
+
+</body>
+</html>

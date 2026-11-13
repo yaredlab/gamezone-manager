@@ -1,0 +1,46 @@
+/* ==========================================================
+   variables.css — Design tokens for GameZone Manager
+   All colors, typography, spacing and global CSS variables
+   ========================================================== */
+
+:root {
+  /* ── Background layers ─────────────────────────────────── */
+  --bg:        #09111d;   /* Page background                */
+  --panel:     #101d2c;   /* Card / panel surface           */
+  --panel2:    #142437;   /* Elevated panel surface         */
+  --input-bg:  #0b1725;   /* Input / inner box background   */
+
+  /* ── Border / divider ──────────────────────────────────── */
+  --line:      #263b50;   /* Default border                 */
+
+  /* ── Typography ────────────────────────────────────────── */
+  --text:      #e8f1f8;   /* Primary text                   */
+  --muted:     #8ea4b8;   /* Secondary / label text         */
+  --font:      Inter, "Segoe UI", Arial, sans-serif;
+  --font-size: 14px;
+  --line-height: 1.45;
+
+  /* ── Accent palette ────────────────────────────────────── */
+  --cyan:      #20c7d5;   /* Primary interactive accent     */
+  --cyan-dark: #168b9b;   /* Active / focus tint            */
+  --green:     #26bd83;   /* Paid / success                 */
+  --orange:    #e7a84d;   /* Paused / warning               */
+  --red:       #ed786d;   /* Danger / error                 */
+
+  /* ── Radius ────────────────────────────────────────────── */
+  --radius-sm: 8px;
+  --radius-md: 9px;
+  --radius-lg: 13px;
+
+  /* ── Spacing ───────────────────────────────────────────── */
+  --gap-sm:    8px;
+  --gap-md:    12px;
+  --gap-lg:    16px;
+  --gap-xl:    20px;
+
+  /* ── Pricing (ETB) ─────────────────────────────────────── */
+  --price-ps4-fifa:       25;
+  --price-ps5-fifa:       30;
+  --price-mission-30min:  50;
+  --price-mission-60min: 100;
+}
