@@ -16,7 +16,7 @@ export function updateSelectionUI(state, selected) {
     const match = con?.matches.find(x => x.id === Number(mid));
     if (con && match && !match.paid) {
       count++;
-      total += getPrice(con);
+      total += getPrice(con, match);
       labels.push(`${id} #${mid}`);
     }
   }
@@ -47,14 +47,20 @@ export function recordPayment(state, selected, renderAll) {
 
   if (!toMark.length) return false;
 
-  const expected = toMark.reduce((sum, { con }) => sum + getPrice(con), 0);
+  const expected = toMark.reduce((sum, { con, match }) => sum + getPrice(con, match), 0);
   if (!Number.isFinite(amount) || Math.abs(amount - expected) > 0.001) {
     alert(`The amount must match the selected bubbles: ${formatMoney(expected)}.`);
     document.getElementById('amount').value = expected.toFixed(2);
     return false;
   }
 
-  toMark.forEach(({ match }) => { match.paid = true; match.method = method; });
+  toMark.forEach(({ con, match }) => {
+    match.paid = true;
+    match.method = method;
+    if (typeof match.price !== 'number') {
+      match.price = getPrice(con, match);
+    }
+  });
 
   const displayMethod = provider ? `Mobile Banking · ${provider}` : 'Cash';
   const consoleGroup  = [...new Set(toMark.map(({ con }) => con.id))].join(', ');

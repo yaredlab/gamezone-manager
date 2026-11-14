@@ -1,54 +1,107 @@
 /**
  * admin/pricing.js
- * Pricing management — read and write admin-controlled prices.
- * Prices are stored separately from worker state so they can be
- * updated without touching active session data.
+ * Pricing management — configure FIFA and Mission Mode prices and intervals.
+ * Synchronizes with Worker Control Panel in real time.
  */
 
 import { getPricing, setPricing } from '../shared/api.js';
 
 /**
- * Load current pricing into the form inputs.
+ * Load current pricing into the form inputs and active summary cards.
  */
 export function renderPricing() {
   const p = getPricing();
-  document.getElementById('ps4Price').value   = p.ps4;
-  document.getElementById('ps5Price').value   = p.ps5;
-  document.getElementById('mission30').value  = p.mission30;
-  document.getElementById('mission60').value  = p.mission60;
+
+  const ps4El = document.getElementById('ps4Price');
+  const ps5El = document.getElementById('ps5Price');
+  const mPriceEl = document.getElementById('missionPrice');
+  const mIntervalEl = document.getElementById('missionInterval');
+
+  if (ps4El) ps4El.value = p.ps4;
+  if (ps5El) ps5El.value = p.ps5;
+  if (mPriceEl) mPriceEl.value = p.missionPrice ?? p.mission30 ?? 50;
+  if (mIntervalEl) mIntervalEl.value = p.missionInterval ?? 30;
+
+  // Active overview cards
+  const ps4Display = document.getElementById('activePs4Display');
+  const ps5Display = document.getElementById('activePs5Display');
+  const mDisplay = document.getElementById('activeMissionDisplay');
+  const mIntervalDisplay = document.getElementById('activeIntervalDisplay');
+  const mIntervalNum = document.getElementById('activeIntervalNumDisplay');
+  const badge = document.getElementById('missionActiveBadge');
+
+  const missionPrice = p.missionPrice ?? p.mission30 ?? 50;
+  const missionInterval = p.missionInterval ?? 30;
+
+  if (ps4Display) ps4Display.textContent = `${p.ps4} ETB`;
+  if (ps5Display) ps5Display.textContent = `${p.ps5} ETB`;
+  if (mDisplay) mDisplay.textContent = `${missionPrice} ETB`;
+  if (mIntervalDisplay) mIntervalDisplay.textContent = `Per ${missionInterval}-minute bubble`;
+  if (mIntervalNum) mIntervalNum.textContent = `${missionInterval} min`;
+  if (badge) badge.textContent = `Active: ${missionPrice} ETB / ${missionInterval} min`;
 }
 
 /**
- * Bind save button and input validation.
+ * Bind save button, validation, and real-time synchronization.
  * @param {Function} renderAll
  */
 export function initPricingListeners(renderAll) {
-  document.getElementById('savePrices').addEventListener('click', () => {
-    const ps4      = Number(document.getElementById('ps4Price').value);
-    const ps5      = Number(document.getElementById('ps5Price').value);
-    const m30      = Number(document.getElementById('mission30').value);
-    const m60      = Number(document.getElementById('mission60').value);
+  const saveBtn = document.getElementById('savePrices');
+  if (!saveBtn) return;
 
-    if ([ps4, ps5, m30, m60].some(n => !Number.isFinite(n) || n < 0)) {
-      showToast('Enter valid positive prices for all fields.', 'error');
+  saveBtn.addEventListener('click', () => {
+    const ps4 = Number(document.getElementById('ps4Price').value);
+    const ps5 = Number(document.getElementById('ps5Price').value);
+    const missionPrice = Number(document.getElementById('missionPrice').value);
+    const missionInterval = Number(document.getElementById('missionInterval').value);
+
+    // Validation
+    if (!Number.isFinite(ps4) || ps4 <= 0) {
+      window.showToast('Enter a valid positive price for PS4 FIFA matches.', 'error');
+      document.getElementById('ps4Price').focus();
       return;
     }
-    if (ps5 < ps4) {
-      showToast('PS5 price is lower than PS4 — confirm this is intentional.', 'warn');
+    if (!Number.isFinite(ps5) || ps5 <= 0) {
+      window.showToast('Enter a valid positive price for PS5 FIFA matches.', 'error');
+      document.getElementById('ps5Price').focus();
+      return;
     }
-    if (m60 < m30 * 2) {
-      showToast('60-min price is lower than 2 × 30-min — confirm this is intentional.', 'warn');
+    if (!Number.isFinite(missionPrice) || missionPrice <= 0) {
+      window.showToast('Enter a valid positive price for Mission Mode.', 'error');
+      document.getElementById('missionPrice').focus();
+      return;
+    }
+    if (!Number.isFinite(missionInterval) || missionInterval < 1 || !Number.isInteger(missionInterval)) {
+      window.showToast('Billing interval must be a positive integer in minutes (e.g. 30).', 'error');
+      document.getElementById('missionInterval').focus();
+      return;
     }
 
-    setPricing({ ps4, ps5, mission30: m30, mission60: m60 });
+    if (ps5 < ps4) {
+      window.showToast('Note: PS5 price is set lower than PS4.', 'warn');
+    }
+
+    setPricing({
+      ps4,
+      ps5,
+      missionPrice,
+      missionInterval,
+      mission30: missionPrice,
+      mission60: missionPrice * 2,
+    });
+
+    renderPricing();
     renderAll();
-    showToast('Pricing saved. Changes will apply to new sessions.');
+    window.showToast('✓ Pricing updated and synchronized with Worker Control Panel.');
   });
 
-  /* Prevent negative input */
-  ['ps4Price','ps5Price','mission30','mission60'].forEach(id => {
-    document.getElementById(id).addEventListener('input', e => {
-      if (Number(e.target.value) < 0) e.target.value = 0;
-    });
+  /* Prevent negative input values */
+  ['ps4Price', 'ps5Price', 'missionPrice', 'missionInterval'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('input', e => {
+        if (Number(e.target.value) < 0) e.target.value = 0;
+      });
+    }
   });
 }

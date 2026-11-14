@@ -4,7 +4,7 @@
  * console activity panel, and recent transactions table.
  */
 
-import { formatMoney, esc } from '../shared/helpers.js';
+import { formatMoney, esc, getCharge, getPaid } from '../shared/helpers.js';
 import { getPricing } from '../shared/api.js';
 
 /**
@@ -53,10 +53,9 @@ export function renderOverview(state) {
   document.getElementById('todayMatches').textContent =
     (state.consoles || []).reduce((n, c) => n + (c.matches || []).length, 0);
 
-  /* Unpaid balance using pricing from admin panel */
+  /* Unpaid balance using shared helper calculation */
   const unpaid = (state.consoles || []).reduce((n, c) => {
-    const price = c.type === 'PS5' ? pricing.ps5 : pricing.ps4;
-    return n + (c.matches || []).filter(m => !m.paid).length * price;
+    return n + Math.max(0, getCharge(c) - getPaid(c));
   }, 0);
   document.getElementById('unpaid').textContent = formatMoney(unpaid);
 

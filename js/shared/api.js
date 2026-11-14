@@ -67,27 +67,65 @@ export function setAppState(state) {
 }
 
 /**
+ * Default system pricing in ETB.
+ */
+export const DEFAULT_PRICING = {
+  ps4: 25,             // ETB per FIFA match on PS4
+  ps5: 30,             // ETB per FIFA match on PS5
+  missionPrice: 50,    // ETB per Mission Mode bubble
+  missionInterval: 30, // Billing interval in minutes (default: 30)
+  mission30: 50,       // Legacy alias for backward compatibility
+  mission60: 100,      // Legacy alias for backward compatibility
+};
+
+/**
  * Load admin-only pricing configuration.
  * Key is separate from worker state so admin can update without touching sessions.
- * @returns {{ ps4: number, ps5: number, mission30: number, mission60: number }}
+ * Automatically synchronizes between Admin Dashboard and Worker Control Panel.
+ * @returns {{ ps4: number, ps5: number, missionPrice: number, missionInterval: number, mission30: number, mission60: number }}
  */
 export function getPricing() {
-  const defaults = { ps4: 25, ps5: 30, mission30: 50, mission60: 100 };
   try {
     const raw = localStorage.getItem('gamezone-admin-pricing');
-    if (raw) return { ...defaults, ...JSON.parse(raw) };
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      // Migration / fallback for legacy fields
+      const missionPrice = parsed.missionPrice ?? parsed.mission30 ?? DEFAULT_PRICING.missionPrice;
+      const missionInterval = parsed.missionInterval ?? DEFAULT_PRICING.missionInterval;
+      return {
+        ...DEFAULT_PRICING,
+        ...parsed,
+        missionPrice: Number(missionPrice) || DEFAULT_PRICING.missionPrice,
+        missionInterval: Number(missionInterval) || DEFAULT_PRICING.missionInterval,
+        mission30: Number(missionPrice) || DEFAULT_PRICING.missionPrice,
+        mission60: (Number(missionPrice) || DEFAULT_PRICING.missionPrice) * 2,
+      };
+    }
   } catch (e) {
     console.warn('[api] Failed to load pricing:', e);
   }
-  return defaults;
+  return { ...DEFAULT_PRICING };
 }
 
 /**
  * Save admin-only pricing configuration.
- * @param {{ ps4: number, ps5: number, mission30: number, mission60: number }} pricing
+ * Saves to localStorage and triggers storage/pricing-updated events for immediate sync.
+ * @param {{ ps4: number, ps5: number, missionPrice: number, missionInterval: number }} pricing
  */
 export function setPricing(pricing) {
-  localStorage.setItem('gamezone-admin-pricing', JSON.stringify(pricing));
+  const normalized = {
+    ps4: Number(pricing.ps4),
+    ps5: Number(pricing.ps5),
+    missionPrice: Number(pricing.missionPrice ?? pricing.mission30 ?? DEFAULT_PRICING.missionPrice),
+    missionInterval: Math.max(1, Math.round(Number(pricing.missionInterval) || DEFAULT_PRICING.missionInterval)),
+    mission30: Number(pricing.missionPrice ?? pricing.mission30 ?? DEFAULT_PRICING.missionPrice),
+    mission60: Number(pricing.mission60 ?? ((pricing.missionPrice ?? 50) * 2)),
+  };
+  localStorage.setItem('gamezone-admin-pricing', JSON.stringify(normalized));
+  // Dispatch custom event for same-tab reactivity
+  try {
+    window.dispatchEvent(new CustomEvent('pricing-updated', { detail: normalized }));
+  } catch (_) {}
 }
 
 /**

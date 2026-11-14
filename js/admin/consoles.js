@@ -26,7 +26,12 @@ export function renderConsoles(state) {
 
   document.getElementById('consoleRows').innerHTML = consoles.length
     ? consoles.map(c => {
-        const price      = c.type === 'PS5' ? pricing.ps5 : pricing.ps4;
+        const price      = c.mode === 'MISSION'
+                         ? (pricing.missionPrice || 50)
+                         : (c.type === 'PS5' ? pricing.ps5 : pricing.ps4);
+        const rateLabel  = c.mode === 'MISSION'
+                         ? `${formatMoney(price)} / ${pricing.missionInterval || 30} min`
+                         : `${formatMoney(price)} / match`;
         const statusCls  = c.status === 'playing' ? 'pill pill-active'
                          : c.status === 'paused'  ? 'pill pill-pause'
                          : 'pill';
@@ -42,7 +47,7 @@ export function renderConsoles(state) {
           <tr>
             <td><b>${esc(c.id)}</b></td>
             <td><span class="pill">${esc(c.type)}</span></td>
-            <td>${formatMoney(price)} / match</td>
+            <td>${rateLabel}</td>
             <td>${esc(c.mode || 'FIFA')}</td>
             <td><span class="${statusCls}">${statusTxt}</span></td>
             <td>${matchCount} match${matchCount !== 1 ? 'es' : ''}

@@ -280,38 +280,102 @@
       <div class="page" id="page-pricing">
         <div class="admin-heading">
           <div>
-            <h1>Pricing settings</h1>
-            <p>Change the prices used by the Worker Dashboard.</p>
+            <h1>Pricing Management</h1>
+            <p>Configure FIFA match pricing and Mission Mode billing rules. Changes synchronize automatically to the Worker Control Panel.</p>
           </div>
         </div>
 
-        <div class="admin-panel">
-          <h2>Game prices (ETB)</h2>
+        <!-- ── Active Pricing Overview ── -->
+        <div class="admin-grid" style="margin-bottom:20px">
+          <div class="stat-card">
+            <span class="stat-label">PS4 FIFA MATCH</span>
+            <div class="stat-num" id="activePs4Display">25 ETB</div>
+            <div class="stat-sub">Per match bubble</div>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">PS5 FIFA MATCH</span>
+            <div class="stat-num" id="activePs5Display">30 ETB</div>
+            <div class="stat-sub">Per match bubble</div>
+          </div>
+          <div class="stat-card">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span class="stat-label">MISSION MODE PRICE</span>
+              <span class="pill pill-live" style="font-size:10px">ACTIVE</span>
+            </div>
+            <div class="stat-num" id="activeMissionDisplay">50 ETB</div>
+            <div class="stat-sub" id="activeIntervalDisplay">Per 30-minute bubble</div>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">MISSION BILLING INTERVAL</span>
+            <div class="stat-num" id="activeIntervalNumDisplay">30 min</div>
+            <div class="stat-sub">1 Bubble added every cycle</div>
+          </div>
+        </div>
+
+        <!-- ── FIFA Match Pricing ── -->
+        <div class="admin-panel" style="margin-bottom:20px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <div>
+              <h2 style="margin:0 0 4px">FIFA Match Pricing</h2>
+              <p style="margin:0;font-size:12px;color:var(--muted)">Set the unit price charged per FIFA match bubble on PS4 and PS5.</p>
+            </div>
+            <span class="pill pill-live">Match Mode</span>
+          </div>
+
           <div class="form-grid">
             <div class="field">
               <label>PS4 · Price per match (ETB)</label>
-              <input id="ps4Price" type="number" min="0" step="0.5" placeholder="25">
+              <input id="ps4Price" type="number" min="1" step="0.5" placeholder="25">
             </div>
             <div class="field">
               <label>PS5 · Price per match (ETB)</label>
-              <input id="ps5Price" type="number" min="0" step="0.5" placeholder="30">
-            </div>
-            <div class="field">
-              <label>Mission · 30 minutes (ETB)</label>
-              <input id="mission30" type="number" min="0" step="1" placeholder="50">
-            </div>
-            <div class="field">
-              <label>Mission · 60 minutes (ETB)</label>
-              <input id="mission60" type="number" min="0" step="1" placeholder="100">
+              <input id="ps5Price" type="number" min="1" step="0.5" placeholder="30">
             </div>
           </div>
-          <button class="primary" id="savePrices" style="margin-top:16px">
-            ✓ Save pricing
-          </button>
+        </div>
+
+        <!-- ── Dedicated Mission Mode Pricing Configuration ── -->
+        <div class="admin-panel" style="margin-bottom:20px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <h2 style="margin:0">Mission Mode Pricing &amp; Billing</h2>
+                <span class="pill pill-live" id="missionTag">Mission Mode Tag</span>
+              </div>
+              <p style="margin:4px 0 0;font-size:12px;color:var(--muted)">Configure the price per bubble and the automatic billing interval.</p>
+            </div>
+            <span class="badge" id="missionActiveBadge" style="background:rgba(0,220,180,0.15);color:var(--cyan);border:1px solid rgba(0,220,180,0.3)">
+              Active: 50 ETB / 30 min
+            </span>
+          </div>
+
+          <div class="form-grid">
+            <div class="field">
+              <label>Mission Mode · Price per Bubble (ETB)</label>
+              <input id="missionPrice" type="number" min="1" step="1" placeholder="50">
+              <small class="muted" style="font-size:11px">Charge for every automatic bubble added.</small>
+            </div>
+            <div class="field">
+              <label>Mission Mode · Billing Interval (Minutes)</label>
+              <input id="missionInterval" type="number" min="1" step="1" placeholder="30">
+              <small class="muted" style="font-size:11px">How often a new bubble is added (default: 30 minutes).</small>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Action & Sync Note ── -->
+        <div class="admin-panel">
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+            <button class="primary" id="savePrices" style="padding:10px 24px;font-size:14px">
+              ✓ Save and Synchronize Pricing
+            </button>
+            <span class="muted" style="font-size:12px">
+              ⚡ Live Sync: Worker Control Panel receives updated pricing immediately without page reload.
+            </span>
+          </div>
           <p class="session-note" style="margin-top:14px">
-            Prices are saved in this browser only. In production, price changes will be
-            stored in the database with an audit log. Changes apply to new sessions only —
-            existing sessions are not affected.
+            <b>Pricing Policy:</b> Updated prices apply immediately to all newly created matches and bubbles.
+            Historical transactions and existing completed matches retain their original recorded prices.
           </p>
         </div>
       </div>

@@ -106,6 +106,16 @@ document.addEventListener('DOMContentLoaded', () => {
   /* ── Auto-refresh every 30 seconds to pick up worker changes ── */
   setInterval(renderAll, 30_000);
 
+  /* ── Real-time synchronization across browser tabs ── */
+  window.addEventListener('storage', e => {
+    if (e.key === 'gamezone-worker-v1' || e.key === 'gamezone-admin-pricing') {
+      renderAll();
+    }
+  });
+  window.addEventListener('pricing-updated', () => {
+    renderAll();
+  });
+
   /* ── Initial render ── */
   navigate('overview');
 });

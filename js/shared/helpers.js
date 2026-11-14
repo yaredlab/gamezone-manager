@@ -1,19 +1,31 @@
 /**
  * helpers.js
- * Pure math and formatting utilities shared across modules.
- * Has NO imports from other app modules — safe to import anywhere.
+ * Math, formatting, and dynamic pricing utilities shared across modules.
  */
+
+import { getPricing } from './api.js';
 
 // ── Pricing ───────────────────────────────────────────────────────────────────
 
 /**
- * Price per FIFA match in ETB.
- * PS4 → 25 ETB, PS5 → 30 ETB.
+ * Price for a match or bubble in ETB.
+ * Always prefers the recorded price on historical match objects so price changes
+ * never mutate past transactions or already-played matches.
+ * Falls back to the latest active pricing configured in Admin Dashboard.
+ *
  * @param {ConsoleObj} con
+ * @param {MatchObj} [match]
  * @returns {number}
  */
-export function getPrice(con) {
-  return con.type === 'PS4' ? 25 : 30;
+export function getPrice(con, match) {
+  if (match && typeof match.price === 'number') {
+    return match.price;
+  }
+  const pricing = getPricing();
+  if (con.mode === 'MISSION') {
+    return pricing.missionPrice || 50;
+  }
+  return con.type === 'PS5' ? (pricing.ps5 || 30) : (pricing.ps4 || 25);
 }
 
 // ── Time helpers ──────────────────────────────────────────────────────────────
@@ -66,26 +78,36 @@ export function formatTimer(totalSeconds) {
 // ── Charge helpers ────────────────────────────────────────────────────────────
 
 /**
- * Total charge for a console's current session.
- * FIFA:    matches × price per match.
- * MISSION: 30-minute blocks × 50 ETB.
+ * Total charge for a console's current session in ETB.
+ * In FIFA mode: Sum of match bubble prices.
+ * In MISSION mode: Sum of 30-minute bubble prices (0 ETB before 30:00, 50 ETB at 30:00, 100 ETB at 60:00...).
+ *
  * @param {ConsoleObj} con
  * @returns {number} ETB
  */
 export function getCharge(con) {
-  if (con.mode === 'MISSION') {
-    return Math.ceil(getElapsed(con) / 1800) * 50;
+  if (!con.matches || con.matches.length === 0) {
+    return 0;
   }
-  return con.matches.length * getPrice(con);
+  return con.matches.reduce(
+    (sum, m) => sum + (typeof m.price === 'number' ? m.price : getPrice(con, m)),
+    0
+  );
 }
 
 /**
- * Amount already paid for a console's current FIFA session.
+ * Amount already paid for a console's current session in ETB.
+ *
  * @param {ConsoleObj} con
  * @returns {number} ETB
  */
 export function getPaid(con) {
-  return con.matches.filter(m => m.paid).length * getPrice(con);
+  if (!con.matches || con.matches.length === 0) {
+    return 0;
+  }
+  return con.matches
+    .filter(m => m.paid)
+    .reduce((sum, m) => sum + (typeof m.price === 'number' ? m.price : getPrice(con, m)), 0);
 }
 
 // ── Formatting ────────────────────────────────────────────────────────────────

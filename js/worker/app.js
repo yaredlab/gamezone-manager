@@ -10,8 +10,9 @@ import {
   getElapsed,
   formatTimer,
 } from './consoles.js';
-import { autoAddMatch } from './sessions.js';
+import { autoAddMatch, checkMissionBubbles } from './sessions.js';
 import { getMatchTimerElapsed, MATCH_INTERVAL_SECONDS } from '../shared/helpers.js';
+import { getPricing } from '../shared/api.js';
 import { updateSelectionUI, initPaymentListeners } from './payments.js';
 import { initCalculator } from './calculator.js';
 import {
@@ -41,47 +42,88 @@ function renderAll() {
   updateSelectionUI(state, selected);
 }
 
-// ── Auto match ticker ─────────────────────────────────────────────────────────
-// Runs every second.  For each active FIFA console it:
-//  1. Checks whether the 4-minute cycle is complete → fires autoAddMatch.
-//  2. Updates the session timer display in-place (no full re-render).
-//  3. Updates the match cycle progress bar in-place.
+// ── 1-Second Real-Time Ticker ─────────────────────────────────────────────────
+// Runs every second:
+// 1. In Match Mode (FIFA):
+//    - Updates the match timer display (counts from 00:00 to 04:00).
+//    - When 4 minutes complete, creates an unpaid match bubble and resets to 00:00.
+//    - Updates the 4-minute progress bar and live countdown.
+// 2. In Mission Mode:
+//    - Updates the continuous session timer display (counting from 00:00 upward).
+//    - At exactly 30 minutes (or admin-configured interval), creates a new unpaid bubble.
+//    - Updates the 30-minute progress bar and live countdown.
+// 3. Ticks live statistics and estimated totals.
 
 function ticker() {
-  let matchCreated = false;
+  let needsRerender = false;
+  const pricing = getPricing();
+  const intervalMinutes = Math.max(1, Number(pricing.missionInterval) || 30);
+  const intervalSec = intervalMinutes * 60;
 
   state.consoles.forEach(con => {
-    // ── Session timer (in-place update) ──
+    // ── Timer Display (In-place update) ──
     const timerEl = document.querySelector(`[data-timer="${CSS.escape(con.id)}"]`);
-    if (timerEl) timerEl.textContent = formatTimer(getElapsed(con));
+    if (timerEl) {
+      if (con.status === 'free') {
+        timerEl.textContent = '00:00:00';
+      } else if (con.mode === 'FIFA') {
+        // FIFA: current match timer (counts 00:00 -> 04:00, resets on addMatch)
+        timerEl.textContent = formatTimer(getMatchTimerElapsed(con));
+      } else {
+        // Mission: continuous session timer
+        timerEl.textContent = formatTimer(getElapsed(con));
+      }
+    }
 
-    // ── Match cycle (auto-generate every 4 minutes) ──
+    // ── FIFA Match Mode: Auto-match every 4 minutes ──
     if (con.status === 'playing' && con.mode === 'FIFA') {
       const cycleEl = document.querySelector(`[data-cycle="${CSS.escape(con.id)}"]`);
 
       if (getMatchTimerElapsed(con) >= MATCH_INTERVAL_SECONDS) {
-        // Fire – create one unpaid bubble and reset the cycle
+        // 4 minutes reached: automatically add unpaid match and reset timer to 00:00
         autoAddMatch(state, con);
-        matchCreated = true;
-        // Full re-render is triggered below after the loop
+        needsRerender = true;
       } else if (cycleEl) {
-        // Update progress bar without touching the whole DOM
-        const cycleSecs   = getMatchTimerElapsed(con);
-        const pct         = Math.round((cycleSecs / MATCH_INTERVAL_SECONDS) * 100);
-        const remaining   = MATCH_INTERVAL_SECONDS - cycleSecs;
-        const cm          = Math.floor(remaining / 60);
-        const cs          = remaining % 60;
-        const fill        = cycleEl.querySelector('.match-cycle-fill');
-        const countdown   = cycleEl.querySelector('.cycle-countdown');
+        // Live update of progress bar and countdown
+        const cycleSecs = getMatchTimerElapsed(con);
+        const pct       = Math.min(100, Math.round((cycleSecs / MATCH_INTERVAL_SECONDS) * 100));
+        const remaining = MATCH_INTERVAL_SECONDS - cycleSecs;
+        const cm        = Math.floor(remaining / 60);
+        const cs        = remaining % 60;
+        const fill      = cycleEl.querySelector('.match-cycle-fill');
+        const countdown = cycleEl.querySelector('.cycle-countdown');
         if (fill)      fill.style.width = pct + '%';
         if (countdown) countdown.textContent =
           `Next match in ${String(cm).padStart(2,'0')}:${String(cs).padStart(2,'0')}`;
       }
     }
+
+    // ── Mission Mode: Auto-bubble every 30 minutes ──
+    if (con.status === 'playing' && con.mode === 'MISSION') {
+      if (checkMissionBubbles(state, con)) {
+        needsRerender = true;
+      } else {
+        const missionCycleEl = document.querySelector(`[data-mission-cycle="${CSS.escape(con.id)}"]`);
+        if (missionCycleEl) {
+          const elapsed   = getElapsed(con);
+          const cycleSecs = elapsed % intervalSec;
+          const pct       = Math.min(100, Math.round((cycleSecs / intervalSec) * 100));
+          const remaining = intervalSec - cycleSecs;
+          const mm        = Math.floor(remaining / 60);
+          const ms        = remaining % 60;
+          const fill      = missionCycleEl.querySelector('.match-cycle-fill');
+          const countdown = missionCycleEl.querySelector('.cycle-countdown');
+          if (fill)      fill.style.width = pct + '%';
+          if (countdown) countdown.textContent =
+            `Next bubble in ${String(mm).padStart(2,'0')}:${String(ms).padStart(2,'0')}`;
+        }
+      }
+    }
   });
 
-  // A new match bubble was created – do a full re-render so it appears instantly
-  if (matchCreated) renderAll();
+  if (needsRerender) {
+    renderAll();
+  }
 
   tickStats(state);
 }
@@ -135,6 +177,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
   newNameInput.addEventListener('keydown', e => {
     if (e.key === 'Enter') document.getElementById('saveConsole').click();
+  });
+
+  /* ── Real-Time Pricing Synchronization with Admin Dashboard ── */
+  // Listens for localStorage updates across tabs or same-tab events
+  window.addEventListener('storage', e => {
+    if (e.key === 'gamezone-admin-pricing' || e.key === 'gamezone-worker-v1') {
+      renderAll();
+    }
+  });
+  window.addEventListener('pricing-updated', () => {
+    renderAll();
   });
 
   /* ── 1-second ticker ── */

@@ -115,16 +115,39 @@ Used by the owner/manager for oversight and configuration.
 
 ---
 
-## Pricing
+## Pricing Configuration & Synchronization
 
-| Mode | Console | Price |
-|---|---|---|
-| FIFA | PS4 | 25 ETB / match |
-| FIFA | PS5 | 30 ETB / match |
-| Mission | Any | 50 ETB / 30 min |
-| Mission | Any | 100 ETB / 60 min |
+| Mode | Target | Default Price | Billing Interval |
+|---|---|---|---|
+| FIFA Match Mode | PS4 Console | 25 ETB | Per match bubble (resets timer on each match) |
+| FIFA Match Mode | PS5 Console | 30 ETB | Per match bubble (resets timer on each match) |
+| Mission Mode | All Consoles | 50 ETB | Every 30 minutes (automatically adds 1 Bubble) |
 
-Prices can be changed by the Admin in the Pricing page. Worker Dashboard reads pricing from shared storage automatically.
+- **Centralized Admin Management:** All prices and billing intervals are configured centrally in `admin.html`.
+- **Real-Time Synchronization:** Updates synchronize immediately to `index.html` across browser tabs without requiring a manual refresh.
+- **Historical Price Retention:** Each match and bubble stores its creation price (`price_etb`); past transactions and existing matches are never altered by price changes.
+
+---
+
+## Timers & Billing System
+
+### 1. Match Mode (FIFA)
+- Counts upward from `00:00` for each active match.
+- When the worker clicks **"+ 1 MATCH"** (or when the 4-minute cycle completes), the timer **immediately resets to 00:00** and counts fresh for the new match.
+- Previous match time stops completely and does not carry over.
+- Only one timer runs per active console session.
+- Survives browser refresh (continues from exact elapsed timestamp).
+
+### 2. Mission Mode
+- Continuous session timer counts from `00:00` upward without resetting.
+- **Automatic Bubble Addition:**
+  - 00:00–29:59 → 0 Bubbles (0 ETB)
+  - At 30:00 → 1 Bubble added automatically (50 ETB)
+  - At 60:00 → 2nd Bubble added automatically (100 ETB)
+  - At 90:00 → 3rd Bubble added automatically (150 ETB)
+  - At 120:00 → 4th Bubble added automatically (200 ETB)
+- Prevents duplicate bubble additions for the same interval.
+- Each bubble is an interactive payment bubble that workers can select and mark as PAID via Cash or Mobile Banking (Telebirr / CBE).
 
 ---
 
