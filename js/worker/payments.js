@@ -5,6 +5,7 @@
 
 import { getPrice, formatMoney } from '../shared/helpers.js';
 import { addTransaction, saveState } from '../shared/storage.js';
+import { openTransactionExplorer, initTransactionExplorer } from './transactionExplorer.js';
 
 export function updateSelectionUI(state, selected) {
   let count = 0, total = 0;
@@ -67,9 +68,23 @@ export function recordPayment(state, selected, renderAll) {
   const description   = document.getElementById('description').value.trim()
     || `${toMark.length} match(es) marked PAID ✓`;
 
+  const txId = 'TX-' + String(Date.now()).slice(-6);
+
   addTransaction(state, {
-    method: displayMethod, provider, amount,
-    console: consoleGroup, description,
+    id: txId,
+    method: displayMethod,
+    provider,
+    amount,
+    console: consoleGroup,
+    description,
+    matchesCount: toMark.length,
+    matches: toMark.map(({ con, match }) => ({
+      consoleId: con.id,
+      consoleType: con.type,
+      mode: con.mode,
+      matchId: match.id,
+      price: match.price,
+    })),
     time: new Date().toLocaleTimeString(),
     createdAt: new Date().toISOString(),
   });
@@ -82,6 +97,9 @@ export function recordPayment(state, selected, renderAll) {
 }
 
 export function initPaymentListeners(state, selected, renderAll) {
+  // Initialize Transaction Explorer
+  initTransactionExplorer(state);
+
   document.getElementById('method').addEventListener('change', () => {
     const isMobile = document.getElementById('method').value === 'Mobile Banking';
     document.getElementById('bankField').style.display = isMobile ? 'block' : 'none';
@@ -96,11 +114,6 @@ export function initPaymentListeners(state, selected, renderAll) {
   });
 
   document.getElementById('viewAll').addEventListener('click', () => {
-    const cash = state.transactions.filter(t => t.method === 'Cash').reduce((n, t) => n + t.amount, 0);
-    const tele = state.transactions.filter(t => t.provider === 'Telebirr').reduce((n, t) => n + t.amount, 0);
-    const cbe  = state.transactions.filter(t => t.provider === 'Commercial Bank of Ethiopia').reduce((n, t) => n + t.amount, 0);
-    alert(
-      `ALL TRANSACTIONS\n\nCash:                        ${formatMoney(cash)}\nTelebirr:                    ${formatMoney(tele)}\nCommercial Bank of Ethiopia: ${formatMoney(cbe)}\nTotal:                       ${formatMoney(cash + tele + cbe)}\nRecords:                     ${state.transactions.length}\n\nFull list is displayed in the panel above.`
-    );
+    openTransactionExplorer(state, 'worker');
   });
 }
