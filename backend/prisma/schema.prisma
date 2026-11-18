@@ -1,0 +1,245 @@
+// ============================================================
+// Prisma Schema — GameZone Manager V2
+// PostgreSQL · Prisma ORM
+// ============================================================
+// Mirrors every business concept already implemented in the
+// V1 localStorage frontend so the migration in api.js is a
+// single-file swap of fetch() calls.
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ── ENUMS ────────────────────────────────────────────────────
+
+enum ConsoleType {
+  PS4
+  PS5
+}
+
+enum GameMode {
+  FIFA
+  MISSION
+}
+
+enum SessionStatus {
+  free
+  playing
+  paused
+  ended
+}
+
+enum UserRole {
+  worker
+  manager
+  admin
+}
+
+enum PaymentMethod {
+  Cash
+  Mobile_Banking
+}
+
+enum MobileBankingProvider {
+  Telebirr
+  Commercial_Bank_of_Ethiopia
+}
+
+// ── BUSINESS SETTINGS ────────────────────────────────────────
+
+/// Singleton row (id = 1) — business information and system preferences
+model BusinessSettings {
+  id           Int      @id @default(1)
+  businessName String   @default("GameZone") @map("business_name") @db.VarChar(100)
+  location     String   @default("") @db.VarChar(200)
+  phone        String   @default("") @db.VarChar(30)
+  currency     String   @default("ETB") @db.VarChar(10)
+  timezone     String   @default("Africa/Addis_Ababa") @db.VarChar(60)
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@map("business_settings")
+}
+
+// ── WORKERS / STAFF ──────────────────────────────────────────
+
+/// Staff accounts (workers and managers)
+model Worker {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(80)
+  username  String   @unique @db.VarChar(60)
+  pinHash   String   @map("pin_hash") @db.Text    // bcrypt hash — never plain text
+  role      UserRole @default(worker)
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  shifts       Shift[]
+  transactions Transaction[]
+
+  @@map("workers")
+}
+
+// ── CONSOLES ─────────────────────────────────────────────────
+
+/// Physical PS4/PS5 devices registered in the system
+model Console {
+  id        Int         @id @default(autoincrement())
+  name      String      @unique @db.VarChar(30)   // e.g. "PS4-01"
+  type      ConsoleType
+  isActive  Boolean     @default(true) @map("is_active")
+  createdAt DateTime    @default(now()) @map("created_at")
+
+  sessions GameSession[]
+
+  @@map("consoles")
+}
+
+// ── PRICING ──────────────────────────────────────────────────
+
+/// Centrally managed pricing — admin configures, workers always use latest
+/// A new row is inserted every time the admin saves; expired rows kept for audit.
+model Pricing {
+  id                  Int         @id @default(autoincrement())
+  consoleType         ConsoleType? @map("console_type")   // null = all types
+  gameMode            GameMode    @map("game_mode")
+  billingIntervalMin  Int         @default(30) @map("billing_interval_min")  // Mission mode interval
+  priceEtb            Decimal     @map("price_etb") @db.Decimal(8, 2)
+  validFrom           DateTime    @default(now()) @map("valid_from")
+  validUntil          DateTime?   @map("valid_until")     // null = currently active
+  createdAt           DateTime    @default(now()) @map("created_at")
+
+  @@map("pricing")
+}
+
+// ── SHIFTS ───────────────────────────────────────────────────
+
+/// One row per worker day-shift (future auth feature)
+model Shift {
+  id        Int       @id @default(autoincrement())
+  workerId  Int?      @map("worker_id")
+  startedAt DateTime  @default(now()) @map("started_at")
+  endedAt   DateTime? @map("ended_at")
+  notes     String?   @db.Text
+
+  worker       Worker?       @relation(fields: [workerId], references: [id])
+  sessions     GameSession[]
+  transactions Transaction[]
+
+  @@map("shifts")
+}
+
+// ── GAME SESSIONS ────────────────────────────────────────────
+
+/// One row per console session (from "Start Session" to "End Session")
+model GameSession {
+  id             Int           @id @default(autoincrement())
+  consoleId      Int           @map("console_id")
+  shiftId        Int?          @map("shift_id")
+  mode           GameMode      @default(FIFA)
+  status         SessionStatus @default(free)
+  startedAt      DateTime?     @map("started_at")
+  endedAt        DateTime?     @map("ended_at")
+  pausedAt       DateTime?     @map("paused_at")        // last pause timestamp
+  elapsedSeconds Int           @default(0) @map("elapsed_seconds")  // accumulated during pauses
+  // Match-mode cycle timer (independent from session timer)
+  matchTimerElapsed   Int  @default(0) @map("match_timer_elapsed")   // seconds
+  matchTimerStartedAt DateTime? @map("match_timer_started_at")       // null when paused
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+
+  console      Console       @relation(fields: [consoleId], references: [id])
+  shift        Shift?        @relation(fields: [shiftId], references: [id])
+  matches      Match[]
+  transactions Transaction[]
+
+  @@index([consoleId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("game_sessions")
+}
+
+// ── MATCHES / BUBBLES ────────────────────────────────────────
+
+/// One row per payment bubble
+/// FIFA mode:    1 bubble per match (timer resets on each new match)
+/// Mission mode: 1 bubble per billing interval (30 min by default)
+model Match {
+  id          Int      @id @default(autoincrement())
+  sessionId   Int      @map("session_id")
+  bubbleType  GameMode @default(FIFA) @map("bubble_type")
+  matchNumber Int      @map("match_number")       // sequential within session (1, 2, 3…)
+  priceEtb    Decimal  @map("price_etb") @db.Decimal(8, 2)  // price at creation — never changed
+  isPaid      Boolean  @default(false) @map("is_paid")
+  paidAt      DateTime? @map("paid_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  session              GameSession          @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  transactionMatches   TransactionMatch[]
+
+  @@index([sessionId])
+  @@index([isPaid])
+  @@map("matches")
+}
+
+// ── TRANSACTIONS ─────────────────────────────────────────────
+
+/// One row per payment event recorded by a worker
+model Transaction {
+  id           Int                    @id @default(autoincrement())
+  txRef        String                 @unique @map("tx_ref") @db.VarChar(30)  // e.g. "TX-123456"
+  shiftId      Int?                   @map("shift_id")
+  sessionId    Int?                   @map("session_id")
+  workerId     Int?                   @map("worker_id")
+  consoleName  String                 @map("console_name") @db.VarChar(100)   // denormalized for history
+  amountEtb    Decimal                @map("amount_etb") @db.Decimal(10, 2)
+  method       PaymentMethod
+  provider     MobileBankingProvider? // null for Cash
+  matchesCount Int                    @default(1) @map("matches_count")
+  description  String?                @db.Text
+  createdAt    DateTime               @default(now()) @map("created_at")
+
+  shift              Shift?             @relation(fields: [shiftId], references: [id])
+  session            GameSession?       @relation(fields: [sessionId], references: [id])
+  worker             Worker?            @relation(fields: [workerId], references: [id])
+  transactionMatches TransactionMatch[]
+
+  @@index([createdAt])
+  @@index([method])
+  @@index([consoleName])
+  @@map("transactions")
+}
+
+// ── TRANSACTION ↔ MATCH BRIDGE ──────────────────────────────
+
+/// Many-to-many join: which match bubbles were covered by a transaction
+model TransactionMatch {
+  transactionId Int @map("transaction_id")
+  matchId       Int @map("match_id")
+
+  transaction Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  match       Match       @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  @@id([transactionId, matchId])
+  @@map("transaction_matches")
+}
+
+// ── PRICING AUDIT LOG ────────────────────────────────────────
+
+/// Immutable log every time an admin changes pricing
+model PricingAuditLog {
+  id          Int      @id @default(autoincrement())
+  changedBy   String   @map("changed_by") @db.VarChar(80)  // admin username
+  ps4Price    Decimal? @map("ps4_price") @db.Decimal(8, 2)
+  ps5Price    Decimal? @map("ps5_price") @db.Decimal(8, 2)
+  missionPrice    Decimal? @map("mission_price") @db.Decimal(8, 2)
+  missionInterval Int?     @map("mission_interval")
+  changedAt   DateTime @default(now()) @map("changed_at")
+
+  @@map("pricing_audit_log")
+}

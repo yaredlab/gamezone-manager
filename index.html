@@ -9,7 +9,6 @@
   <link rel="stylesheet" href="css/variables.css">
   <link rel="stylesheet" href="css/main.css">
   <link rel="stylesheet" href="css/worker.css">
-  <link rel="stylesheet" href="css/explorer.css">
   <link rel="stylesheet" href="css/responsive.css">
 </head>
 <body>
@@ -166,6 +165,40 @@
 
     </aside>
   </div>
+
+  <!-- ── Integrated Inline Transactions Panel (Expands when clicking View All) ── -->
+  <section class="inline-tx-section" id="inlineTxSection" style="display:none">
+    <div class="sectionhead">
+      <div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <h2>Today's Transactions — All Records</h2>
+          <span class="badge" id="inlineTxBadge">0 records</span>
+        </div>
+        <div class="muted" style="font-size:11px;margin-top:3px">
+          Complete scrollable ledger of customer payments recorded today.
+        </div>
+      </div>
+      <button class="primary" id="collapseTxBtn" style="background:var(--panel2);border:1px solid var(--line);color:var(--cyan);cursor:pointer">
+        ▲ Collapse Transactions
+      </button>
+    </div>
+
+    <div class="inline-tx-scroll" id="inlineTxScroll">
+      <table class="inline-tx-table">
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Console</th>
+            <th>Payment Method</th>
+            <th>Matches / Items</th>
+            <th>Amount Paid</th>
+            <th>Payment Status</th>
+          </tr>
+        </thead>
+        <tbody id="inlineTxRows"></tbody>
+      </table>
+    </div>
+  </section>
 
   <div class="footer">
     Prototype · Data is saved in this browser on this device.

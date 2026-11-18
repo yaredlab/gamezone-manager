@@ -265,8 +265,27 @@
 .txlist {
   display: grid;
   gap: var(--gap-sm);
-  max-height: 330px;
-  overflow: auto;
+  max-height: 280px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) var(--input-bg);
+}
+
+.txlist::-webkit-scrollbar {
+  width: 6px;
+}
+.txlist::-webkit-scrollbar-track {
+  background: var(--input-bg);
+  border-radius: 4px;
+}
+.txlist::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: 4px;
+}
+.txlist::-webkit-scrollbar-thumb:hover {
+  background: var(--cyan-dark);
 }
 
 .tx {
@@ -294,6 +313,84 @@
   font-weight: 800;
   color: var(--green);
   white-space: nowrap;
+}
+
+/* ── Inline Expandable Transaction Panel ───────────────────── */
+.inline-tx-section {
+  margin-top: var(--gap-xl);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 18px 20px;
+  animation: inlineFadeDown 0.22s ease-out;
+}
+
+@keyframes inlineFadeDown {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.inline-tx-scroll {
+  max-height: 420px;
+  overflow-y: auto;
+  overflow-x: auto;
+  margin-top: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--panel2);
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) var(--panel2);
+}
+
+.inline-tx-scroll::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+.inline-tx-scroll::-webkit-scrollbar-track {
+  background: var(--panel2);
+}
+.inline-tx-scroll::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: 4px;
+}
+.inline-tx-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--cyan-dark);
+}
+
+.inline-tx-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  text-align: left;
+}
+
+.inline-tx-table thead {
+  position: sticky;
+  top: 0;
+  background: #0d1926;
+  z-index: 2;
+  box-shadow: 0 1px 0 var(--line);
+}
+
+.inline-tx-table th {
+  padding: 10px 14px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.inline-tx-table td {
+  padding: 11px 14px;
+  border-bottom: 1px solid rgba(38, 59, 80, 0.4);
+  color: var(--text);
+  vertical-align: middle;
+}
+
+.inline-tx-table tbody tr:hover {
+  background: rgba(32, 199, 213, 0.05);
 }
 
 /* ── Quick calculator ───────────────────────────────────── */

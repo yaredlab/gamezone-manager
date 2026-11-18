@@ -1,6 +1,7 @@
 /**
  * admin/transactions.js
- * Full transaction history with search, filter, and CSV export.
+ * Full transaction history with advanced search, filters,
+ * scrollable table container, and CSV export.
  */
 
 import { formatMoney, esc } from '../shared/helpers.js';
@@ -8,9 +9,10 @@ import { formatMoney, esc } from '../shared/helpers.js';
 /**
  * Normalise a raw transaction for display.
  * @param {Object} tx
+ * @param {number} index
  * @returns {Object}
  */
-function normalise(tx) {
+function normalise(tx, index) {
   const m = tx.method || '';
   let method = tx.provider || '';
   if (!method) {
@@ -19,24 +21,62 @@ function normalise(tx) {
     else if (m === 'Cash')             method = 'Cash';
     else                               method = m || 'Unknown';
   }
+
+  const d = new Date(tx.createdAt || tx.timestamp || Date.now());
+  const matchesCount = tx.matchesCount ||
+    (tx.description && tx.description.match(/\d+/) ? tx.description.match(/\d+/)[0] : 1);
+
   return {
     ...tx,
+    id: tx.id || `TXN-${String(index + 1).padStart(4, '0')}`,
     method,
+    matchesCount,
     amount:  Number(tx.amount) || 0,
     console: tx.console || '—',
     desc:    tx.description || 'Payment',
-    date:    new Date(tx.createdAt || tx.timestamp || Date.now()),
+    date:    d,
+    time:    tx.time || d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+    status:  'PAID',
   };
+}
+
+/**
+ * Date range checking helper.
+ */
+function matchesDateFilter(d, filter) {
+  if (filter === 'all') return true;
+
+  const now = new Date();
+  const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+
+  if (filter === 'today') {
+    return d >= startToday;
+  }
+  if (filter === 'yesterday') {
+    const startYest = new Date(startToday);
+    startYest.setDate(startYest.getDate() - 1);
+    const endYest = new Date(startToday);
+    endYest.setMilliseconds(-1);
+    return d >= startYest && d <= endYest;
+  }
+  if (filter === 'week') {
+    const startWeek = new Date(startToday);
+    startWeek.setDate(startWeek.getDate() - 6);
+    return d >= startWeek;
+  }
+  if (filter === 'month') {
+    const startMonth = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
+    return d >= startMonth;
+  }
+  return true;
 }
 
 /**
  * Build a single transaction row HTML string.
  * @param {Object} t - normalised transaction
- * @param {number} index - row number for reference
  * @returns {string}
  */
-function buildRow(t, index) {
-  const refNum = `TXN-${String(index + 1).padStart(4, '0')}`;
+function buildRow(t) {
   const methodBadge = t.method === 'Cash'
     ? 'pill'
     : t.method === 'Telebirr'
@@ -45,13 +85,45 @@ function buildRow(t, index) {
 
   return `
     <tr>
-      <td class="tx-ref">${esc(refNum)}</td>
-      <td>${esc(t.date.toLocaleDateString())} <span class="tx-time">${esc(t.date.toLocaleTimeString())}</span></td>
+      <td><span class="tx-ref">#${esc(t.id)}</span></td>
+      <td>${esc(t.date.toLocaleDateString())}</td>
+      <td><span class="tx-time">${esc(t.time)}</span></td>
       <td><b>${esc(t.console)}</b></td>
       <td><span class="${methodBadge}">${esc(t.method)}</span></td>
-      <td>${esc(t.desc)}</td>
+      <td><b>${esc(t.matchesCount)}</b> match(es)</td>
       <td class="amt-green">+${formatMoney(t.amount)}</td>
+      <td><span class="pill pill-live">PAID ✓</span></td>
     </tr>`;
+}
+
+/**
+ * Filter transactions based on current UI inputs.
+ */
+function getFilteredTransactions(state) {
+  const methodEl = document.getElementById('filterMethod');
+  const queryEl  = document.getElementById('searchTx');
+  const statusEl = document.getElementById('filterStatus');
+  const dateEl   = document.getElementById('filterDate');
+
+  const methodFilter = methodEl ? methodEl.value : 'all';
+  const query        = queryEl  ? (queryEl.value || '').toLowerCase().trim() : '';
+  const statusFilter = statusEl ? statusEl.value : 'all';
+  const dateFilter   = dateEl   ? dateEl.value : 'all';
+
+  const all = (state.transactions || []).map((t, i) => normalise(t, i));
+
+  return all.filter(t => {
+    // Method filter
+    const methodMatch = methodFilter === 'all' || t.method === methodFilter;
+    // Status filter
+    const statusMatch = statusFilter === 'all' || t.status.toLowerCase() === statusFilter.toLowerCase();
+    // Date filter
+    const dateMatch = matchesDateFilter(t.date, dateFilter);
+    // Text search filter (console, id, description, method)
+    const textMatch = !query || `${t.id} ${t.console} ${t.desc} ${t.method}`.toLowerCase().includes(query);
+
+    return methodMatch && statusMatch && dateMatch && textMatch;
+  });
 }
 
 /**
@@ -59,27 +131,24 @@ function buildRow(t, index) {
  * @param {AppState} state
  */
 export function renderTransactions(state) {
-  const methodFilter = document.getElementById('filterMethod').value;
-  const query        = (document.getElementById('searchTx').value || '').toLowerCase().trim();
+  const allCount = (state.transactions || []).length;
+  const filtered = getFilteredTransactions(state);
 
-  const all = (state.transactions || []).map(normalise);
-
-  const filtered = all.filter(t => {
-    const methodMatch = methodFilter === 'all' || t.method === methodFilter;
-    const textMatch   = !query || `${t.console} ${t.desc} ${t.method}`.toLowerCase().includes(query);
-    return methodMatch && textMatch;
-  });
-
-  /* Newest first */
+  // Newest first
   const sorted = filtered.slice().sort((a, b) => b.date - a.date);
 
-  /* Summary row counts */
-  document.getElementById('txResultCount').textContent =
-    `${sorted.length} of ${all.length} transactions`;
+  // Summary row counts
+  const counterEl = document.getElementById('txResultCount');
+  if (counterEl) {
+    counterEl.textContent = `Showing ${sorted.length} of ${allCount} transactions`;
+  }
 
-  document.getElementById('allRows').innerHTML = sorted.length
-    ? sorted.map((t, i) => buildRow(t, i)).join('')
-    : `<tr><td colspan="6" class="admin-empty">No transactions match the current filters.</td></tr>`;
+  const rowsEl = document.getElementById('allRows');
+  if (rowsEl) {
+    rowsEl.innerHTML = sorted.length
+      ? sorted.map(t => buildRow(t)).join('')
+      : `<tr><td colspan="8" class="admin-empty" style="text-align:center;padding:30px">No transactions match the selected filters.</td></tr>`;
+  }
 }
 
 /**
@@ -87,27 +156,24 @@ export function renderTransactions(state) {
  * @param {AppState} state
  */
 export function exportCSV(state) {
-  const methodFilter = document.getElementById('filterMethod').value;
-  const query        = (document.getElementById('searchTx').value || '').toLowerCase().trim();
+  const filtered = getFilteredTransactions(state).sort((a, b) => b.date - a.date);
 
-  const all = (state.transactions || []).map(normalise);
-  const filtered = all
-    .filter(t => {
-      const methodMatch = methodFilter === 'all' || t.method === methodFilter;
-      const textMatch   = !query || `${t.console} ${t.desc}`.toLowerCase().includes(query);
-      return methodMatch && textMatch;
-    })
-    .sort((a, b) => b.date - a.date);
+  if (!filtered.length) {
+    alert('No transactions to export.');
+    return;
+  }
 
-  const header = ['Reference', 'Date', 'Time', 'Console', 'Payment Method', 'Description', 'Amount (ETB)'];
-  const rows = filtered.map((t, i) => [
-    `TXN-${String(i + 1).padStart(4, '0')}`,
+  const header = ['Transaction ID', 'Date', 'Time', 'Console', 'Payment Method', 'Matches', 'Amount (ETB)', 'Status', 'Description'];
+  const rows = filtered.map(t => [
+    t.id,
     t.date.toLocaleDateString(),
-    t.date.toLocaleTimeString(),
+    t.time,
     t.console,
     t.method,
+    t.matchesCount,
+    t.amount.toFixed(2),
+    t.status,
     t.desc,
-    t.amount,
   ]);
 
   const csvContent = [header, ...rows]
@@ -128,7 +194,18 @@ export function exportCSV(state) {
  * @param {AppState} state
  */
 export function initTransactionListeners(state) {
-  document.getElementById('filterMethod').addEventListener('change', () => renderTransactions(state));
-  document.getElementById('searchTx').addEventListener('input',      () => renderTransactions(state));
-  document.getElementById('export').addEventListener('click', () => exportCSV(state));
+  const bind = (id, event) => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener(event, () => renderTransactions(state));
+  };
+
+  bind('filterMethod', 'change');
+  bind('filterStatus', 'change');
+  bind('filterDate',   'change');
+  bind('searchTx',     'input');
+
+  const exportBtn = document.getElementById('export');
+  if (exportBtn) {
+    exportBtn.addEventListener('click', () => exportCSV(state));
+  }
 }

@@ -158,7 +158,7 @@
       <div class="page" id="page-transactions">
         <div class="admin-heading">
           <div>
-            <h1>Transactions &amp; receipts</h1>
+            <h1>Transactions &amp; Receipts</h1>
             <p>Complete payment history recorded by workers.</p>
           </div>
           <div class="admin-heading-actions">
@@ -167,9 +167,13 @@
         </div>
 
         <div class="admin-panel">
-          <!-- Filters -->
-          <div class="admin-filter-row">
-            <div class="field">
+          <!-- Filters & Search Controls -->
+          <div class="admin-filter-row" style="flex-wrap:wrap;gap:12px">
+            <div class="field" style="min-width:180px">
+              <label>SEARCH (CONSOLE / TX ID / NOTES)</label>
+              <input id="searchTx" placeholder="Search console, ID, description...">
+            </div>
+            <div class="field" style="min-width:140px">
               <label>PAYMENT METHOD</label>
               <select id="filterMethod">
                 <option value="all">All methods</option>
@@ -178,26 +182,41 @@
                 <option value="Commercial Bank of Ethiopia">Commercial Bank of Ethiopia</option>
               </select>
             </div>
-            <div class="field">
-              <label>SEARCH CONSOLE / DESCRIPTION</label>
-              <input id="searchTx" placeholder="Type to filter…">
+            <div class="field" style="min-width:120px">
+              <label>PAYMENT STATUS</label>
+              <select id="filterStatus">
+                <option value="all">All statuses</option>
+                <option value="paid">Paid</option>
+              </select>
+            </div>
+            <div class="field" style="min-width:140px">
+              <label>DATE FILTER</label>
+              <select id="filterDate">
+                <option value="all">All dates</option>
+                <option value="today">Today</option>
+                <option value="yesterday">Yesterday</option>
+                <option value="week">This week</option>
+                <option value="month">This month</option>
+              </select>
             </div>
           </div>
 
           <!-- Result count -->
-          <div class="tx-result-label" id="txResultCount">0 transactions</div>
+          <div class="tx-result-label" id="txResultCount" style="margin:12px 0 8px;font-weight:700">0 transactions</div>
 
-          <!-- Table -->
-          <div class="tablewrap">
+          <!-- Vertically Scrollable Professional Table -->
+          <div class="tablewrap scrollable-table-container">
             <table>
               <thead>
                 <tr>
-                  <th>Ref #</th>
-                  <th>Date / Time</th>
+                  <th>Transaction ID</th>
+                  <th>Date</th>
+                  <th>Time</th>
                   <th>Console</th>
-                  <th>Payment method</th>
-                  <th>Description</th>
-                  <th>Amount</th>
+                  <th>Payment Method</th>
+                  <th>Number of Matches</th>
+                  <th>Total Amount</th>
+                  <th>Payment Status</th>
                 </tr>
               </thead>
               <tbody id="allRows"></tbody>
@@ -205,8 +224,7 @@
           </div>
 
           <p class="session-note" style="margin-top:14px">
-            Receipt image uploads and transaction reference numbers will be fully implemented
-            with the backend integration in V2.
+            Displaying live local transaction ledger. Table is independently scrollable with fixed header.
           </p>
         </div>
       </div>
@@ -278,40 +296,6 @@
            PAGE: Pricing
            ════════════════════════════════════════════════ -->
       <div class="page" id="page-pricing">
-        <div class="admin-heading">
-          <div>
-            <h1>Pricing Management</h1>
-            <p>Configure FIFA match pricing and Mission Mode billing rules. Changes synchronize automatically to the Worker Control Panel.</p>
-          </div>
-        </div>
-
-        <!-- ── Active Pricing Overview ── -->
-        <div class="admin-grid" style="margin-bottom:20px">
-          <div class="stat-card">
-            <span class="stat-label">PS4 FIFA MATCH</span>
-            <div class="stat-num" id="activePs4Display">25 ETB</div>
-            <div class="stat-sub">Per match bubble</div>
-          </div>
-          <div class="stat-card">
-            <span class="stat-label">PS5 FIFA MATCH</span>
-            <div class="stat-num" id="activePs5Display">30 ETB</div>
-            <div class="stat-sub">Per match bubble</div>
-          </div>
-          <div class="stat-card">
-            <div style="display:flex;justify-content:space-between;align-items:center">
-              <span class="stat-label">MISSION MODE PRICE</span>
-              <span class="pill pill-live" style="font-size:10px">ACTIVE</span>
-            </div>
-            <div class="stat-num" id="activeMissionDisplay">50 ETB</div>
-            <div class="stat-sub" id="activeIntervalDisplay">Per 30-minute bubble</div>
-          </div>
-          <div class="stat-card">
-            <span class="stat-label">MISSION BILLING INTERVAL</span>
-            <div class="stat-num" id="activeIntervalNumDisplay">30 min</div>
-            <div class="stat-sub">1 Bubble added every cycle</div>
-          </div>
-        </div>
-
         <!-- ── FIFA Match Pricing ── -->
         <div class="admin-panel" style="margin-bottom:20px">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
@@ -334,19 +318,14 @@
           </div>
         </div>
 
-        <!-- ── Dedicated Mission Mode Pricing Configuration ── -->
+        <!-- ── Mission Mode Pricing & Billing ── -->
         <div class="admin-panel" style="margin-bottom:20px">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
             <div>
-              <div style="display:flex;align-items:center;gap:8px">
-                <h2 style="margin:0">Mission Mode Pricing &amp; Billing</h2>
-                <span class="pill pill-live" id="missionTag">Mission Mode Tag</span>
-              </div>
-              <p style="margin:4px 0 0;font-size:12px;color:var(--muted)">Configure the price per bubble and the automatic billing interval.</p>
+              <h2 style="margin:0 0 4px">Mission Mode Pricing &amp; Billing</h2>
+              <p style="margin:0;font-size:12px;color:var(--muted)">Configure the price per bubble and the automatic billing interval.</p>
             </div>
-            <span class="badge" id="missionActiveBadge" style="background:rgba(0,220,180,0.15);color:var(--cyan);border:1px solid rgba(0,220,180,0.3)">
-              Active: 50 ETB / 30 min
-            </span>
+            <span class="pill pill-live">Mission Mode</span>
           </div>
 
           <div class="form-grid">
@@ -438,13 +417,14 @@
           <!-- Console performance table -->
           <div class="admin-panel">
             <h2>Console performance</h2>
-            <div class="tablewrap">
+            <div class="tablewrap scrollable-table-container" style="max-height:300px">
               <table>
                 <thead>
                   <tr>
                     <th>Console</th>
                     <th>Transactions</th>
                     <th>Revenue</th>
+                    <th style="text-align:right">Inspect</th>
                   </tr>
                 </thead>
                 <tbody id="consoleReport"></tbody>
@@ -453,10 +433,36 @@
           </div>
         </div>
 
+        <!-- ── All Transactions in Selected Reporting Period ── -->
+        <div class="admin-panel" style="margin-top:20px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px">
+            <div>
+              <h2 style="margin:0 0 4px">All Transactions — <span id="rptRangeTitle">Daily</span></h2>
+              <span class="muted" style="font-size:12px" id="rptAllTxCount">0 transactions in this period</span>
+            </div>
+          </div>
+
+          <div class="tablewrap scrollable-table-container" style="max-height:420px">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Time</th>
+                  <th>Console</th>
+                  <th>Payment Method</th>
+                  <th>Matches</th>
+                  <th>Amount</th>
+                  <th>Payment Status</th>
+                </tr>
+              </thead>
+              <tbody id="rptAllRows"></tbody>
+            </table>
+          </div>
+        </div>
+
         <div class="admin-panel">
           <p class="session-note">
-            Date-range filtering, match counts per console, worker performance breakdown,
-            and PDF receipt exports will be added after the database is connected in V2.
+            Reports are calculated in real time from local transaction records. All lists are independently scrollable.
           </p>
         </div>
       </div>

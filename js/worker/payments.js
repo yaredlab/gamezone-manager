@@ -5,7 +5,6 @@
 
 import { getPrice, formatMoney } from '../shared/helpers.js';
 import { addTransaction, saveState } from '../shared/storage.js';
-import { openTransactionExplorer, initTransactionExplorer } from './transactionExplorer.js';
 
 export function updateSelectionUI(state, selected) {
   let count = 0, total = 0;
@@ -97,9 +96,6 @@ export function recordPayment(state, selected, renderAll) {
 }
 
 export function initPaymentListeners(state, selected, renderAll) {
-  // Initialize Transaction Explorer
-  initTransactionExplorer(state);
-
   document.getElementById('method').addEventListener('change', () => {
     const isMobile = document.getElementById('method').value === 'Mobile Banking';
     document.getElementById('bankField').style.display = isMobile ? 'block' : 'none';
@@ -111,9 +107,5 @@ export function initPaymentListeners(state, selected, renderAll) {
 
   document.getElementById('clearSelection').addEventListener('click', () => {
     selected.clear(); renderAll();
-  });
-
-  document.getElementById('viewAll').addEventListener('click', () => {
-    openTransactionExplorer(state, 'worker');
   });
 }

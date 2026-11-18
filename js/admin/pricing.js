@@ -7,7 +7,7 @@
 import { getPricing, setPricing } from '../shared/api.js';
 
 /**
- * Load current pricing into the form inputs and active summary cards.
+ * Load current pricing into the form inputs.
  */
 export function renderPricing() {
   const p = getPricing();
@@ -21,24 +21,6 @@ export function renderPricing() {
   if (ps5El) ps5El.value = p.ps5;
   if (mPriceEl) mPriceEl.value = p.missionPrice ?? p.mission30 ?? 50;
   if (mIntervalEl) mIntervalEl.value = p.missionInterval ?? 30;
-
-  // Active overview cards
-  const ps4Display = document.getElementById('activePs4Display');
-  const ps5Display = document.getElementById('activePs5Display');
-  const mDisplay = document.getElementById('activeMissionDisplay');
-  const mIntervalDisplay = document.getElementById('activeIntervalDisplay');
-  const mIntervalNum = document.getElementById('activeIntervalNumDisplay');
-  const badge = document.getElementById('missionActiveBadge');
-
-  const missionPrice = p.missionPrice ?? p.mission30 ?? 50;
-  const missionInterval = p.missionInterval ?? 30;
-
-  if (ps4Display) ps4Display.textContent = `${p.ps4} ETB`;
-  if (ps5Display) ps5Display.textContent = `${p.ps5} ETB`;
-  if (mDisplay) mDisplay.textContent = `${missionPrice} ETB`;
-  if (mIntervalDisplay) mIntervalDisplay.textContent = `Per ${missionInterval}-minute bubble`;
-  if (mIntervalNum) mIntervalNum.textContent = `${missionInterval} min`;
-  if (badge) badge.textContent = `Active: ${missionPrice} ETB / ${missionInterval} min`;
 }
 
 /**
@@ -92,7 +74,7 @@ export function initPricingListeners(renderAll) {
 
     renderPricing();
     renderAll();
-    window.showToast('✓ Pricing updated and synchronized with Worker Control Panel.');
+    window.showToast('✓ Pricing saved and synchronized with Worker Control Panel.');
   });
 
   /* Prevent negative input values */

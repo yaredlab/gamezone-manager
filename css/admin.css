@@ -374,3 +374,84 @@ tr:last-child td { border-bottom: none; }
   padding-top: 14px;
   border-top: 1px solid var(--line);
 }
+
+/* ── Fixed-Height Scrollable Tables with Sticky Headers ───── */
+.scrollable-table-container {
+  max-height: 560px;
+  overflow-y: auto;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--panel2);
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) var(--panel2);
+}
+
+.scrollable-table-container::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+.scrollable-table-container::-webkit-scrollbar-track {
+  background: var(--panel2);
+}
+.scrollable-table-container::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: 4px;
+}
+.scrollable-table-container::-webkit-scrollbar-thumb:hover {
+  background: var(--cyan-dark);
+}
+
+.scrollable-table-container thead th {
+  position: sticky;
+  top: 0;
+  background: #0d1926;
+  z-index: 3;
+  box-shadow: 0 1px 0 var(--line);
+}
+
+/* ── Expandable Console Inspection Box in Reports ─────────── */
+.console-inspect-btn {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  color: var(--cyan);
+  padding: 3px 8px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.console-inspect-btn:hover {
+  background: var(--input-bg);
+  border-color: var(--cyan);
+}
+
+.console-subtable-box {
+  background: #070e17;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  margin: 6px 0;
+  max-height: 240px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) #070e17;
+}
+
+.console-subtable-box table {
+  font-size: 11px;
+}
+
+.console-subtable-box th {
+  font-size: 10px;
+  color: var(--muted);
+  border-bottom: 1px solid var(--line);
+  padding: 6px 8px;
+}
+
+.console-subtable-box td {
+  padding: 6px 8px;
+  border-bottom: 1px solid rgba(38, 59, 80, 0.3);
+}
